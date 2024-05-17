@@ -1,0 +1,37 @@
+---
+- name: Deploy LAMP Stack and Setup Cron Job
+  hosts: slave
+  become: yes
+  tasks:
+    - name: Copy Bash Script to Slave Node
+      copy:
+        src: /home/vagrant/deploy_master.sh
+        dest: /tmp/deploy_master.sh
+        mode: 0755  # Ensure script is executable
+
+    - name: Execute Bash Script
+      shell: /tmp/deploy_master.sh
+      args:
+        warn: no
+
+    - name: Verify PHP Application Accessibility
+      uri:
+        url: http://192.168.33.11
+        return_content: yes
+      register: php_app_response
+
+    - name: Debug PHP Application Response
+      debug:
+        var: php_app_response
+
+    - name: Setup Cron Job to Check Server Uptime
+      cron:
+        name: Check Server Uptime
+        minute: 0
+        hour: 0
+        job: "uptime >> /var/log/uptime.log"
+    handlers:
+    - name: Restart Apache Service
+      service:
+        name: apache2
+        state: restarted
